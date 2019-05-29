@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
@@ -7,17 +6,15 @@ import MassivTalk.Integral
 import Prelude as P
 
 gaussian1 :: Floating a => a -> a -> a
-gaussian1 stdDev x = exp (- (x ^ (2 :: Int)) / var2) / (sqrt (var2 * pi))
+gaussian1 stdDev x = exp (- (x ^ (2 :: Int)) / var2) / sqrt (var2 * pi)
   where
     var2 = 2 * stdDev ^ (2 :: Int)
-{-# INLINE gaussian1 #-}
 
 main :: IO ()
 main = do
   let g = gaussian1 2
-      {-# INLINE g #-}
-      !b = 1000
-      !k = 100000
+      b = 1000
+      k = 100000
   defaultMain
     [ bgroup
         "Naive"

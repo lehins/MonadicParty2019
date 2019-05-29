@@ -1,0 +1,62 @@
+name:                MassivTalk
+version:             0.1.0.0
+synopsis:            Short description
+description:         Please see the README on GitHub at <https://github.com/lehins/MassivTalk#readme>
+homepage:            https://github.com/lehins/MassivTalk
+license:             BSD3
+license-file:        LICENSE
+author:              Alexey Kuleshevich
+maintainer:          alexey@kuleshevi.ch
+copyright:           2019 Alexey Kuleshevich
+category:            Algorithms
+build-type:          Simple
+extra-source-files:  README.md
+                   , CHANGELOG.md
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     MassivTalk.Integral
+
+  other-modules:
+  build-depends:       base            >= 4.8 && < 5
+                     , massiv
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wredundant-constraints
+
+
+-- executable MassivTalk
+--   main-is: Main.hs
+--   other-modules:
+--       Paths_MassivTalk
+--   hs-source-dirs:     app
+--   ghc-options:        -Wall
+--                       -Wincomplete-record-updates
+--                       -Wincomplete-uni-patterns
+--                       -Wredundant-constraints
+--                       -O2
+--                       -threaded
+--                       -rtsopts
+--                       -with-rtsopts=-N
+--   build-depends:      base
+--                     , MassivTalk
+--   default-language: Haskell2010
+
+benchmark integral
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      bench
+  main-is:             Integral.hs
+  ghc-options:         -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , criterion
+                     , massiv
+                     , MassivTalk
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/lehins/MassivTalk

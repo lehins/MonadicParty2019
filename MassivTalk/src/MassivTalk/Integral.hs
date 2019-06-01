@@ -1,20 +1,29 @@
-module MassivTalk.Integral
-  ( integrate
-  , integrateTrapezoid
-  , integrateNaive
-  , integrateNaivePar
-  , integrateNoDuplicateBad
-  , integrateNoDuplicate
-  , integrateNoDuplicatePar
-  , integrateNoDuplicateList
-  , integrateNoAllocate
-  , integrateNoAllocateN8
-  ) where
+module MassivTalk.Integral where
+  -- ( integrate
+  -- , integrateTrapezoid
+  -- , integrateNaive
+  -- , integrateNaivePar
+  -- , integrateNoDuplicateBad
+  -- , integrateNoDuplicate
+  -- , integrateNoDuplicatePar
+  -- , integrateNoDuplicateList
+  -- , integrateNoAllocate
+  -- , integrateNoAllocateN8
+  -- , integrateNoAllocateList
+  -- -- * Runge precision approximation
+  -- , rungeRule
+  -- , trapezoidalRunge
+  -- , trapezoidalRungeMemo
+  -- , trapezoidalRungeMemoPar
+  -- ) where
 
+import Data.Foldable as F
 import Control.Applicative
 import Data.Massiv.Array as A
+import Data.Massiv.Array.Unsafe
 import Data.Massiv.Array.Numeric.Integral
 import Prelude as P
+import Control.Scheduler
 
 -- StackOverflow question:
 -- https://stackoverflow.com/questions/56332713/how-do-i-add-parallel-computation-to-this-example
@@ -31,7 +40,7 @@ integrate n f a b =
 
 
 -- Something more complicated, how about a parabola
--- >>> integrate 1000 (\x -> x * x) 10 20
+-- >>> integrate 1024 (\x -> x * x) 10 20
 
 
 -- >>> let f x = x ** 3 / 3 :: Double
@@ -45,7 +54,7 @@ integrateTrapezoid :: Int -> (Double -> Double) -> Double -> Double -> Double
 integrateTrapezoid n f a b =
   trapezoidRule Seq P (\scale x -> f (scale x)) a (b - a) (Sz1 1) n ! 0
 
--- >>> integrateTrapezoid 1000 (\x -> x * x) 10 20
+-- >>> integrateTrapezoid 1024 (\x -> x * x) 10 20
 
 
 
@@ -78,7 +87,7 @@ integrateNaive n f a b =
       area x   = step * (f x + f (x + step)) / 2
   in P.sum $ fmap area segments
 
--- >>> integrateNaive 1000 (\x -> x * x) 10 20
+-- >>> integrateNaive 1024 (\x -> x * x) 10 20
 
 
 
@@ -92,7 +101,7 @@ integrateNaivePar n f a b =
   in A.sum $ A.map area segments
 
 
--- >>> integrateNaivePar 1000 (\x -> x * x) 10 20
+-- >>> integrateNaivePar 1024 (\x -> x * x) 10 20
 
 -- Checkout benchmarks:
 -- :! stack bench :integral --ba '--match prefix Naive'
@@ -131,13 +140,12 @@ integrateNoDuplicate :: Int -> (Double -> Double) -> Double -> Double -> Double
 integrateNoDuplicate n f a b =
   let step = (b - a) / fromIntegral n
       sz = size segments - 1
-      -- this is still a delayed array
       segments = computeAs P $ fmap f (enumFromStepN Seq a step (Sz (n + 1)))
       area y0 y1 = step * (y0 + y1) / 2
       areas = A.zipWith area (extract' 0 sz segments) (extract' 1 sz segments)
    in A.sum areas
 
--- >>> integrateNoDuplicate 1000 (\x -> x * x) 10 20
+-- >>> integrateNoDuplicate 1024 (\x -> x * x) 10 20
 
 -- check the benchmarks:
 -- :! stack bench :integral --ba '--match prefix NoDuplicate/Seq'
@@ -153,7 +161,6 @@ integrateNoDuplicatePar :: Int -> (Double -> Double) -> Double -> Double -> Doub
 integrateNoDuplicatePar n f a b =
   let step = (b - a) / fromIntegral n
       sz = size segments - 1
-      -- this is still a delayed array
       segments = computeAs P $ fmap f (enumFromStepN Par a step (Sz (n + 1)))
       area y0 y1 = step * (y0 + y1) / 2
       areas = A.zipWith area (extract' 0 sz segments) (extract' 1 sz segments)
@@ -168,7 +175,7 @@ integrateNoDuplicateList n f a b =
       area y0 y1 = step * (y0 + y1) / 2
   in P.sum $ P.zipWith area ys (tail ys)
 
--- >>> integrateNoDuplicateList 1000 (\x -> x * x) 10 20
+-- >>> integrateNoDuplicateList 1024 (\x -> x * x) 10 20
 
 
 -- :! stack bench :integral --ba '--match prefix NoDuplicate'
@@ -196,7 +203,6 @@ integrateNoAllocate n f a b =
 
 -- :! stack bench :integral --ba '--match prefix No'
 -- Waaat?
-
 
 -- Can we do even better?
 -- Not too straighforward, but there is a bit of uglyness we can come up with.
@@ -239,9 +245,151 @@ integrateNoAllocateN8 n f a b =
 
 
 
+integrateNoAllocateList :: Int -> (Double -> Double) -> Double -> Double -> Double
+integrateNoAllocateList n f a b =
+  let step = (b - a) / fromIntegral n
+      segments = [f (a + fromIntegral x * step) | x <- [1 .. n]]
+      area y0 y1 = step * (y0 + y1) / 2
+      sumWith (acc, y0) y1 =
+        let acc' = acc + area y0 y1
+         in acc' `seq` (acc', y1)
+   in fst $ F.foldl' sumWith (0, f a) segments
 
--- List memory footprint
--- [1,2,3] :: Int
+-- >>> integrateNoAllocateList 1024 (\x -> x * x) 10 20
+-- 2333.3335
 
--- P (P 1) : P ( P (P 2 ) : P (P (P 3) : P _))
--- (I# 1#) : ((I# 2#) : ((I# 3#) : []))
+
+
+-- | Returns estimated integral up to a precision, or value estimated at max
+-- number of steps
+rungeRule ::
+     Int -- ^ Maximum number of steps as an upper bound, to prevent unbounded computation
+  -> Double -- ^ ε -- precision
+  -> Int -- ^ Starting value of @n@
+  -> Double -- ^ Θ -- ^ Either 1/3 for trapezoidal and midpoint or 1/15 for Simpson's
+  -> (Int -> Double) -- ^ Integral estimator
+  -> Either Double (Int, Double)
+rungeRule nMax epsilon n0 theta integralEstimator =
+  go (integralEstimator n0) (2 * n0)
+  where
+    go prevEstimate n
+      | n >= nMax = Left prevEstimate
+      | theta * abs (curEstimate - prevEstimate) < epsilon =
+        Right (n, curEstimate)
+      | otherwise = go curEstimate (2 * n)
+      where
+        curEstimate = integralEstimator n
+
+trapezoidalRunge ::
+     Double -- ^ ε -- precision
+  -> (Double -> Double) -- ^ f(x) - function to integrate
+  -> Double -- ^ a - from
+  -> Double -- ^ b - to
+  -> Either Double (Int, Double)
+trapezoidalRunge epsilon f a b =
+  rungeRule 131072 epsilon 2 (1 / 3) (\n -> integrateNoDuplicate n f a b)
+
+
+-- >>> trapezoidalRunge 0.0005 (\x -> x * x) 10 20
+
+-- Memoized version
+
+
+-- Helper
+trapezoidalMemoized ::
+     Int
+  -> Array P Ix1 Double
+  -> (Double -> Double)
+  -> Double
+  -> Double
+  -> (Double, Array P Ix1 Double)
+trapezoidalMemoized n prevSegments f a b =
+  let step = (b - a) / fromIntegral n
+      sz = size segments - 1
+      curSegments =
+        fmap f (enumFromStepN Seq (a + step) (2 * step) (Sz (n `div` 2)))
+      segments =
+        computeAs P $
+        makeLoadArrayS (Sz (n + 1)) 0 $ \w -> do
+          A.iforM_ prevSegments $ \i e -> w (i * 2) e
+          A.iforM_ curSegments $ \i e -> w (i * 2 + 1) e
+      area y0 y1 = step * (y0 + y1) / 2
+      areas = A.zipWith area segments (extract' 1 sz segments)
+   in (A.sum areas, segments)
+
+
+trapezoidalRungeMemo ::
+     Double -- ^ ε -- precision
+  -> (Double -> Double) -- ^ f(x) - function to integrate
+  -> Double -- ^ a - from
+  -> Double -- ^ b - to
+  -> Either Double (Int, Double)
+trapezoidalRungeMemo epsilon f a b = go initEstimate initSegments 4
+  where
+    (initEstimate, initSegments) =
+      trapezoidalMemoized 2 (A.fromList Seq [f a, f b]) f a b
+    nMax = 131072 -- 2 ^ 17
+    theta = 1 / 3
+    go prevEstimate prevSegments n
+      | n >= nMax = Left prevEstimate
+      | theta * abs (curEstimate - prevEstimate) < epsilon =
+        Right (n, curEstimate)
+      | otherwise = go curEstimate curSegments (2 * n)
+      where
+        (curEstimate, curSegments) =
+          trapezoidalMemoized n prevSegments f a b
+
+-- >>> trapezoidalRungeMemo 0.0005 (\x -> x * x) 10 20
+
+
+trapezoidalMemoizedPar ::
+     Int
+  -> Array P Ix1 Double
+  -> (Double -> Double)
+  -> Double
+  -> Double
+  -> (Double, Array P Ix1 Double)
+trapezoidalMemoizedPar n prevSegments f a b =
+  let step = (b - a) / fromIntegral n
+      sz = size segments - 1
+      curSegments =
+        fmap f (enumFromStepN Seq (a + step) (2 * step) (Sz (n `div` 2)))
+      segments =
+        computeAs P $
+        unsafeMakeLoadArray Par (Sz (n + 1)) Nothing $ \scheduler _ w -> do
+          splitLinearlyWith_
+            scheduler
+            (unSz (size prevSegments))
+            (unsafeLinearIndex prevSegments) $ \i e -> w (i * 2) e
+          splitLinearlyWith_
+            scheduler
+            (unSz (size curSegments))
+            (unsafeLinearIndex curSegments) $ \i e -> w (i * 2 + 1) e
+      area y0 y1 = step * (y0 + y1) / 2
+      areas = A.zipWith area segments (extract' 1 sz segments)
+   in (A.sum areas, segments)
+
+-- >>> trapezoidalRungeMemoPar 0.0005 (\x -> x * x) 10 20
+
+trapezoidalRungeMemoPar ::
+     Double -- ^ ε -- precision
+  -> (Double -> Double) -- ^ f(x) - function to integrate
+  -> Double -- ^ a - from
+  -> Double -- ^ b - to
+  -> Either Double (Int, Double)
+trapezoidalRungeMemoPar epsilon f a b = go initEstimate initSegments 4
+  where
+    (initEstimate, initSegments) =
+      trapezoidalMemoizedPar 2 (A.fromList Seq [f a, f b]) f a b
+    nMax = 131072 -- 2 ^ 17
+    theta = 1 / 3
+    go prevEstimate prevSegments n
+      | n >= nMax = Left prevEstimate
+      | theta * abs (curEstimate - prevEstimate) < epsilon =
+        Right (n, curEstimate)
+      | otherwise = go curEstimate curSegments (2 * n)
+      where
+        (curEstimate, curSegments) =
+          trapezoidalMemoizedPar n prevSegments f a b
+
+-- >>> trapezoidalRungeMemoPar 0.0005 (\x -> x * x) 10 20

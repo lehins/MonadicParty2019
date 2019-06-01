@@ -5,16 +5,12 @@ import Criterion.Main
 import MassivTalk.Integral
 import Prelude as P
 
-gaussian1 :: Floating a => a -> a -> a
-gaussian1 stdDev x = exp (- (x ^ (2 :: Int)) / var2) / sqrt (var2 * pi)
-  where
-    var2 = 2 * stdDev ^ (2 :: Int)
-
 main :: IO ()
 main = do
-  let g = gaussian1 2
-      b = 1000
-      k = 100000
+  let b = 1000
+      k = 131072
+      epsilon = 0.00000000005
+      g x = sin x * cos (x * x * x)
   defaultMain
     [ bgroup
         "Naive"
@@ -34,5 +30,12 @@ main = do
         "NoAllocate"
         [ bench "Seq" $ whnf (integrateNoAllocate k g 0) b
         , bench "Par 8" $ whnf (integrateNoAllocateN8 k g 0) b
+        , bench "List " $ whnf (integrateNoAllocateList k g 0) b
+        ]
+    , bgroup
+        "RungeRule"
+        [ bench "trapezoidalRunge" $ nf (trapezoidalRunge epsilon g 0) b
+        , bench "trapezoidalRungeMemo" $ nf (trapezoidalRungeMemo epsilon g 0) b
+        , bench "trapezoidalRungeMemoPar" $ nf (trapezoidalRungeMemoPar epsilon g 0) b
         ]
     ]

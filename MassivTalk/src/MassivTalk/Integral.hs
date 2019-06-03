@@ -23,10 +23,10 @@ import Data.Massiv.Array as A
 import Data.Massiv.Array.Unsafe
 import Data.Massiv.Array.Numeric.Integral
 import Prelude as P
-import Control.Scheduler
 
--- StackOverflow question:
+-- StackOverflow questions:
 -- https://stackoverflow.com/questions/56332713/how-do-i-add-parallel-computation-to-this-example
+-- https://stackoverflow.com/questions/56395599/how-to-correctly-add-the-runge-error-estimation-rule-to-this-example
 
 -- Sanity check:
 -- >>> integrate 1 id 0 10

@@ -40,11 +40,9 @@ packages:
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
 extra-deps:
-- scheduler-1.2.0@sha256:ed979ffc097be91ed2da49c39c8f24b925f088d6f2617508fd508dfcc6df364c,2699
-- git: https://github.com/lehins/massiv.git
-  commit: 2a464316f4a5114e8adaad08553e1f72b1af3a7f
-  subdirs:
-    - massiv/
+- scheduler-1.4.0@sha256:b182be9a7b84e1dba02dac761c3f4e204521d0f779d72d86040789d5aaadf92a,2833
+- massiv-0.3.4.0@sha256:ab67f314434d838d8f7f97593db3715bc79e71d870dc8de84302931a32a84845,6030
+
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

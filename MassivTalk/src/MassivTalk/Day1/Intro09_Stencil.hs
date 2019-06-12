@@ -93,7 +93,7 @@ initialState =
   where
     stateStr =
       fromLists'
-        Seq
+        Par
         [ "022222222000000"
         , "217014014200000"
         , "202222220200000"

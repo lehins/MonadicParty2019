@@ -99,6 +99,7 @@ unboxed n = makeArray Seq (Sz n) parabola
 storable :: Int -> Array S Ix1 Double
 storable n = makeArray Seq (Sz n) parabola
 
+-- :! stack bench :intro --ba '--match prefix Intro01/Double'
 
 -- An expensive function
 chaos :: Int -> Int -> Double
@@ -116,3 +117,9 @@ boxedMaybeWHNF n = makeArray Seq (Sz n) (Just . chaos n)
 
 boxedMaybeNF :: Int -> Array N Ix1 (Maybe Double)
 boxedMaybeNF n = makeArray Seq (Sz n) (Just . chaos n)
+
+boxedMaybeParNF :: Int -> Array N Ix1 (Maybe Double)
+boxedMaybeParNF n = makeArray Par (Sz n) (Just . chaos n)
+
+
+-- :! stack bench :intro --ba '--match prefix Intro01/Maybe'

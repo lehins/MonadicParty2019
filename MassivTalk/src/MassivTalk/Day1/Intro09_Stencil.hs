@@ -11,6 +11,38 @@ import Data.Maybe
 import Data.Word
 import System.Console.ANSI as C
 
+
+------------------
+-- Game of Life --
+------------------
+
+
+lifeRules :: Word8 -> Word8 -> Word8
+lifeRules 0 3 = 1
+lifeRules 1 2 = 1
+lifeRules 1 3 = 1
+lifeRules _ _ = 0
+
+lifeStencil :: Stencil Ix2 Word8 Word8
+lifeStencil = makeStencil (Sz (3 :. 3)) (1 :. 1) $ \ get ->
+  lifeRules <$> get (0 :. 0) <*>
+  (get (-1 :. -1) + get (-1 :. 0) + get (-1 :. 1) +
+   get ( 0 :. -1)         +         get ( 0 :. 1) +
+   get ( 1 :. -1) + get ( 1 :. 0) + get ( 1 :. 1))
+
+lifeStep :: Array S Ix2 Word8 -> Array S Ix2 Word8
+lifeStep = compute . mapStencil Wrap lifeStencil
+
+
+
+
+
+
+
+--------------------
+-- Langton's Loop --
+--------------------
+
 -- |
 --    T
 --  L C R

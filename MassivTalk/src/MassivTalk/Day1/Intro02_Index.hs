@@ -117,29 +117,19 @@ import Data.Massiv.Array as A
 -- >>> Sz3 3 2 1
 
 
--- >>> arr = makeArrayR D Par (maxBound :. maxBound) $ (i :. j) -> fromIntegral i
+------------
+-- Stride --
+------------
 
-
-ridiculousSquare :: Int -> Array D Ix2 Double
-ridiculousSquare k =
-  makeArray Par (Sz2 k k) $ \(i :. j) -> fromIntegral i ** sin (fromIntegral j)
-
-
--- >>> arr = ridiculousSquare maxBound
--- >>> size arr
--- >>> evaluateM arr (123456765432134 :. 2345677654345678)
-
-
--- | Computing in full is infeasible
-
--- >>> stride = Stride (maxBound `div` 3 :. maxBound `div` 2)
--- >>> print stride
--- >>> computeWithStrideAs U stride $ ridiculousSquare maxBound
+--
+-- >>> Ix1 0 ... 10
+-- >>> computeWithStrideAs P (Stride 2) (Ix1 0 ... 10)
 
 
 -- | Stride is similar to Sz, just a special index
 
+-- >>> :t Stride
+
 -- >>> Stride (3 :> 0 :. -2)
 -- Stride (3 :> 1 :. 1)
-
 

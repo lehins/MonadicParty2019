@@ -17,6 +17,7 @@ dependencies:
 - ansi-terminal
 - containers
 - massiv >= 0.3.4
+- massiv-io
 - random
 - scheduler >= 1.2.0
 - splitmix

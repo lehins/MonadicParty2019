@@ -4,11 +4,35 @@ module MassivTalk.Day1.Intro03_DelayedVsManifest where
 import Prelude as P
 import Data.Massiv.Array as A
 
--- | Fuse computation
 
--- >>> f x = x * x
--- >>> arr = makeArrayR D Seq (Sz2 5 5) $ \ (i :. j) -> f (i - 2) + f (j - 2)
+---------------------
+-- Class Hierarchy --
+---------------------
+
+-- | Same type variables as in: `Array r ix e`
+
+-- class (Typeable r, Index ix) => Construct r ix e where
+
+-- class (Typeable r, Index ix) => Load r ix e where
+
+-- class Load r ix e => Source r ix e where
+
+-- class (Load r ix e, Source r ix e) => Manifest r ix e where
+
+
+
+
+-- | Fuse computation and avoid array allocations
+
+paraboloid :: Int -> Array D Ix2 Double
+paraboloid n = makeArrayR D Par (Sz2 n n) $ \(i :. j) -> f (i - n2) + f (j - n2)
+  where
+    n2 = n `div` 2
+    f x = fromIntegral (x * x)
+
+-- >>> arr = paraboloid 5
 -- >>> A.sum $ A.map (+10) arr
+-- 350.0
 
 
 -- | Intermediate large size arrays
@@ -17,14 +41,15 @@ ridiculousSquare :: Int -> Array D Ix2 Double
 ridiculousSquare k =
   makeArray Seq (Sz2 k k) $ \(i :. j) -> fromIntegral i ** sin (fromIntegral j)
 
-
+--
 -- >>> arr = ridiculousSquare maxBound
--- >>> size arr
+-- >>> computeAs U arr ! 0
 -- >>> evaluateM arr (123456765432134 :. 2345677654345678)
 
 
 -- | Loading of such array into memory in full is infeasible
 
+--
 -- >>> stride = Stride (maxBound `div` 3 :. maxBound `div` 2)
 -- >>> print stride
 -- >>> computeWithStrideAs U stride $ ridiculousSquare maxBound
@@ -33,11 +58,12 @@ ridiculousSquare k =
 -- | Indices that are too large are dangerous
 -- | As long as the total number of elements is below `maxBound :: Int`, we are ok.
 
+--
 -- >>> arr = ridiculousSquare maxBound
 -- >>> extractM 0 (Sz2 5 6) arr
 
 
--- | Identity
+-- | Computation
 
 
 identityD :: Int -> Array D Ix2 Int
@@ -47,15 +73,53 @@ identityD n =
       then 1
       else 0
 
+--
+-- >>> computeAs P $ identityD 5
+
+-- >>> :t computeAs
+
+-- | The process of computation:
+--
+-- * Take a loadable array
+-- * Allocate a mutable array of the same size
+-- * Load each element of the loadable array into the new mutable according to
+--   the computation strategy
+-- * Freeze the mutable array and get as a result the pure manifest array.
+
+-- | This is how we can hide all of the effectful memory allocation, mutation
+-- and threads scheduling as a safe and pure computation.
+
+
+-- | Fusion of computation and some pitfalls
+
+--
+-- >>> arr = A.map (sin . (+10)) $ paraboloid 3
+-- >>> computeAs P $ A.zipWith (+) arr (A.map cos arr)
+
+--
+-- >>> arr = computeAs P $ A.map (sin . (+10)) $ paraboloid 3
+-- >>> computeAs P $ A.zipWith (+) arr (A.map cos arr)
+
+{- Rule of thumb. If delayed array is used more than once, compute it. -}
+
+----------------
+-- Push array --
+----------------
+
+
+
 
 -- >>> :t makeLoadArrayS
 
 identityDL :: Int -> Array DL Ix2 Int
-identityDL n = makeLoadArrayS (Sz2 n n) 0 $ \ w -> do
-  let f i = w (i :. i) 1
+identityDL n = makeLoadArrayS (Sz2 n n) 0 $ \ writeCell -> do
+  let f i = writeCell (i :. i) 1
   A.mapM_ f (0 ... n - 1)
   -- Same as:
   -- P.mapM_ f [0 .. n - 1]
 
 
+-- >>> identityDL 5
 
+
+-- >>> upsample 3 (Stride 2) $ identityDL 5

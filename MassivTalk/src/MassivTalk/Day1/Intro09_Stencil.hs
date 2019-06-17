@@ -23,6 +23,8 @@ lifeRules 1 2 = 1
 lifeRules 1 3 = 1
 lifeRules _ _ = 0
 
+--- >>> :t makeStencil
+
 lifeStencil :: Stencil Ix2 Word8 Word8
 lifeStencil = makeStencil (Sz (3 :. 3)) (1 :. 1) $ \ get ->
   lifeRules <$> get (0 :. 0) <*>

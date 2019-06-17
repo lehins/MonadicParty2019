@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-unused-imports #-}
 module MassivTalk.Day1.Intro02_Index where
 
 import Data.Massiv.Array as A
@@ -6,36 +7,62 @@ import Data.Massiv.Array as A
 -- Indices --
 -------------
 
+
+
 -- | Started simple, with something that we are all familar with: tuples
 
+--
 -- >>> (1,1,1) ... (2,3,4) :: Array D (Int, Int, Int) (Int, Int, Int)
 
+--
 -- >>> (1,1,1) ... (2,3,4) :: Array D Ix3T Ix3T
 
+--
 -- >>> (1, 2, 3, 4, 5) :: Ix5T
 
 
 -- | Problems with Tuples:
 -- * lazy
 -- * too polymorphic
+-- * don't scale to an arbitrary dimension:
 
+--
 -- >>> (1 :> 1 :. 1) ... (2 :> 3 :. 4)
 
+--
 -- >>> (1 :> 2 :> 3 :> 4 :. 5)
 
+--
+-- >>> (4 :. 5)
 
--- * Arbitrary dimension:
+--
+-- >>> 5
+
+--
+-- >>> 5 :: Ix1
+
+--
+-- >>> Ix1 5
+
+
+
 
 -- |
 --
--- data Ix2 = {-# UNPACK #-}Int :. {-# UNPACK #-}Int
---   	-- Defined in ‘massiv-0.3.4.0:Data.Massiv.Core.Index.Ix’
+-- data Ix2 = Int :. Int
+--
 -- infixr 5 :.
 --
 -- data IxN (n :: Nat)
---   = {-# UNPACK #-}Int :> !(Ix (n - 1))
---   	-- Defined in ‘massiv-0.3.4.0:Data.Massiv.Core.Index.Ix’
+--   = Int :> Ix (n - 1)
+--
 -- infixr 5 :>
+--
+-- type family Ix (n :: Nat) = r | r -> n where
+--   Ix 0 = Ix0
+--   Ix 1 = Ix1
+--   Ix 2 = Ix2
+--   Ix n = IxN n
 --
 
 
@@ -122,7 +149,7 @@ import Data.Massiv.Array as A
 ------------
 
 --
--- >>> Ix1 0 ... 10
+-- >>> Ix5 7 4 4 0 0 ... 10
 -- >>> computeWithStrideAs P (Stride 2) (Ix1 0 ... 10)
 
 

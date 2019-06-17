@@ -67,6 +67,9 @@ exampleArray = makeArray Seq sz (toLinearIndex sz)
 -- >>> print newArray
 -- >>> print exampleArray
 
+
+
+
 -- | Couple of more examples
 
 --

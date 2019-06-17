@@ -14,8 +14,8 @@ main = do
   defaultMain
     [ bgroup
         "Naive"
-        [ bench "list" $ whnf (integrate k g 0) b
-        , bench "trapezoidRule" $ whnf (integrateTrapezoid k g 0) b
+        [ bench "trapezoidRule" $ whnf (integrateTrapezoid k g 0) b
+        , bench "list" $ whnf (integrate k g 0) b
         , bench "array Seq" $ whnf (integrateNaive k g 0) b
         , bench "array Par" $ whnf (integrateNaivePar k g 0) b
         ]

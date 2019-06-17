@@ -1,24 +1,6 @@
 module MassivTalk.Integral where
-  -- ( integrate
-  -- , integrateTrapezoid
-  -- , integrateNaive
-  -- , integrateNaivePar
-  -- , integrateNoDuplicateBad
-  -- , integrateNoDuplicate
-  -- , integrateNoDuplicatePar
-  -- , integrateNoDuplicateList
-  -- , integrateNoAllocate
-  -- , integrateNoAllocateN8
-  -- , integrateNoAllocateList
-  -- -- * Runge precision approximation
-  -- , rungeRule
-  -- , trapezoidalRunge
-  -- , trapezoidalRungeMemo
-  -- , trapezoidalRungeMemoPar
-  -- ) where
 
 import Data.Foldable as F
-import Control.Applicative
 import Data.Massiv.Array as A
 import Data.Massiv.Array.Unsafe
 import Data.Massiv.Array.Numeric.Integral
@@ -27,24 +9,6 @@ import Prelude as P
 -- StackOverflow questions:
 -- https://stackoverflow.com/questions/56332713/how-do-i-add-parallel-computation-to-this-example
 -- https://stackoverflow.com/questions/56395599/how-to-correctly-add-the-runge-error-estimation-rule-to-this-example
-
--- Sanity check:
--- >>> integrate 1 id 0 10
-
-integrate :: Int -> (Double -> Double) -> Double -> Double -> Double
-integrate n f a b =
-  let step     = (b - a) / fromIntegral n
-      segments = [a + fromIntegral x * step | x <- [0 .. n-1]]
-      area x   = step * (f x + f (x + step)) / 2
-  in P.sum $ P.map area segments
-
-
--- Something more complicated, how about a parabola
--- >>> integrate 1024 (\x -> x * x) 10 20
-
-
--- >>> let f x = x ** 3 / 3 :: Double
--- >>> f 20 - f 10
 
 
 -- | Built-in solution:
@@ -56,16 +20,48 @@ integrateTrapezoid n f a b =
 
 -- >>> integrateTrapezoid 1024 (\x -> x * x) 10 20
 
-
-
 -- Normal use cases is a lot more complex:
 -- >>> let f x y = exp (- (x ** 2 + y ** 2)) :: Float
 -- >>> trapezoidRule Seq P (\scale (i :. j) -> f (scale i) (scale j)) (-2) 1 (Sz2 4 4) 100
 
+-- TODO: add formula for trapezoid rule
+-- | Implementation from the SO question using lists
+
+integrate :: Int -> (Double -> Double) -> Double -> Double -> Double
+integrate n f a b =
+  let step     = (b - a) / fromIntegral n
+      segments = [a + fromIntegral x * step | x <- [0 .. n-1]]
+      area x   = step * (f x + f (x + step)) / 2
+  in P.sum $ P.map area segments
+
+-- Sanity check:
+--
+-- >>> integrate 1 (\x -> x) 0 10 == 10 * 10 / 2
+-- True
+
+
+-- Something more complicated, how about a parabola:
+--
+-- >>> integrate 1024 (\x -> x * x) 10 20
+-- 2333.3334922790527
+
+
+-- Exact solution:
+--
+-- >>> let f x = x ** 3 / 3 :: Double
+-- >>> f 20 - f 10
+-- 2333.333333333333
 
 
 
 -- | Direct naive translation into massiv arrays
+
+integrateNaive :: Int -> (Double -> Double) -> Double -> Double -> Double
+integrateNaive n f a b =
+  let step     = (b - a) / fromIntegral n
+      segments = fmap (\x -> a + fromIntegral x * step) (0 ..: n)
+      area x   = step * (f x + f (x + step)) / 2
+  in P.sum $ fmap area segments
 
 -- range sugar:
 -- >>> Ix1 0 ... 10
@@ -80,14 +76,8 @@ integrateTrapezoid n f a b =
 -- >>>  0 :. 1 ... 5
 
 
-integrateNaive :: Int -> (Double -> Double) -> Double -> Double -> Double
-integrateNaive n f a b =
-  let step     = (b - a) / fromIntegral n
-      segments = fmap (\x -> a + fromIntegral x * step) (0 ..: n)
-      area x   = step * (f x + f (x + step)) / 2
-  in P.sum $ fmap area segments
-
 -- >>> integrateNaive 1024 (\x -> x * x) 10 20
+-- 2333.3334922790527
 
 
 
@@ -102,6 +92,7 @@ integrateNaivePar n f a b =
 
 
 -- >>> integrateNaivePar 1024 (\x -> x * x) 10 20
+-- 2333.3334922790527
 
 -- Checkout benchmarks:
 -- :! stack bench :integral --ba '--match prefix Naive'
@@ -121,7 +112,13 @@ integrateNaivePar n f a b =
 -- >>> (a, b) = (10, 20) :: (Double, Double)
 -- >>> step = (b - a) / fromIntegral n
 -- >>> A.map (\x -> a + fromIntegral x * step) (range Par 0 n) :: Array D Ix1 Double
+-- Array D Par (Sz1 10)
+--   [ 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0 ]
 -- >>> enumFromStepN Seq a step (Sz n + 1) :: Array D Ix1 Double
+-- Array D Seq (Sz1 11)
+--   [ 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0 ]
+
+-- TODO: ad intermediate steps
 
 integrateNoDuplicateBad :: Int -> (Double -> Double) -> Double -> Double -> Double
 integrateNoDuplicateBad n f a b =
@@ -130,7 +127,7 @@ integrateNoDuplicateBad n f a b =
       -- this is still a delayed array
       segments = fmap f (enumFromStepN Seq a step (Sz (n + 1)))
       area y0 y1 = step * (y0 + y1) / 2
-      areas = liftA2 area (extract' 0 sz segments) (extract' 1 sz segments)
+      areas = A.zipWith area segments (extract' 1 sz segments)
    in P.sum areas
 
 -- integrateNoDuplicate :: Int -> (Double -> Double) -> Double -> Double -> Double
@@ -142,7 +139,7 @@ integrateNoDuplicate n f a b =
       sz = size segments - 1
       segments = computeAs P $ fmap f (enumFromStepN Seq a step (Sz (n + 1)))
       area y0 y1 = step * (y0 + y1) / 2
-      areas = A.zipWith area (extract' 0 sz segments) (extract' 1 sz segments)
+      areas = A.zipWith area segments (extract' 1 sz segments)
    in A.sum areas
 
 -- >>> integrateNoDuplicate 1024 (\x -> x * x) 10 20
@@ -259,7 +256,7 @@ integrateNoAllocateList n f a b =
 -- 2333.3335
 
 
-
+--TODO: add the formula
 -- | Returns estimated integral up to a precision, or value estimated at max
 -- number of steps
 rungeRule ::

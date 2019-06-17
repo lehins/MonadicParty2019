@@ -6,6 +6,23 @@ import Prelude as P
 import Data.Massiv.Array as A
 
 
+---------------------
+-- Class Hierarchy --
+---------------------
+
+-- class Index ix => Resize r ix where
+
+-- class Load r ix e => Extract r ix e where
+
+
+-- class Load r ix e => OuterSlice r ix e where
+
+-- class Load r ix e => InnerSlice r ix e where
+
+-- class Load r ix e => Slice r ix e where
+
+
+
 sampleArr = computeAs U $ fromIx3 <$> (0 :> 0 :. 0 ... 4 :> 2 :. 6)
 
 sampleArr' = computeAs U (fmap fromIx3 (rangeInclusive Seq (0 :> 0 :. 0) (4 :> 2 :. 6)))

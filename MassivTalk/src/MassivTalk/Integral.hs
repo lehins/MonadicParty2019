@@ -37,20 +37,17 @@ integrate n f a b =
 -- Sanity check:
 --
 -- >>> integrate 1 (\x -> x) 0 10 == 10 * 10 / 2
--- True
 
 
 -- Something more complicated, how about a parabola:
 --
 -- >>> integrate 1024 (\x -> x * x) 10 20
--- 2333.3334922790527
 
 
 -- Exact solution:
 --
 -- >>> let f x = x ** 3 / 3 :: Double
 -- >>> f 20 - f 10
--- 2333.333333333333
 
 
 
@@ -73,11 +70,10 @@ integrateNaive n f a b =
 -- >>> Ix1 0 ..: 10
 
 -- Works for all dimensions
--- >>>  0 :. 1 ... 5
+-- >>> 0 :. 1 ... 5
 
 
 -- >>> integrateNaive 1024 (\x -> x * x) 10 20
--- 2333.3334922790527
 
 
 
@@ -92,7 +88,6 @@ integrateNaivePar n f a b =
 
 
 -- >>> integrateNaivePar 1024 (\x -> x * x) 10 20
--- 2333.3334922790527
 
 -- Checkout benchmarks:
 -- :! stack bench :integral --ba '--match prefix Naive'
@@ -112,13 +107,9 @@ integrateNaivePar n f a b =
 -- >>> (a, b) = (10, 20) :: (Double, Double)
 -- >>> step = (b - a) / fromIntegral n
 -- >>> A.map (\x -> a + fromIntegral x * step) (range Par 0 n) :: Array D Ix1 Double
--- Array D Par (Sz1 10)
---   [ 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0 ]
 -- >>> enumFromStepN Seq a step (Sz n + 1) :: Array D Ix1 Double
--- Array D Seq (Sz1 11)
---   [ 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0 ]
 
--- TODO: ad intermediate steps
+-- TODO: add intermediate steps
 
 integrateNoDuplicateBad :: Int -> (Double -> Double) -> Double -> Double -> Double
 integrateNoDuplicateBad n f a b =

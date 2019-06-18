@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-unused-imports #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -7,6 +8,7 @@ import Control.Monad.ST (ST, runST)
 import Control.Scheduler
 import Data.Massiv.Array as A
 import Prelude as P
+import System.Random as System
 import System.Random.MWC as MWC
 import System.Random.PCG.Pure as PCG
 
@@ -14,12 +16,14 @@ randomArrayPureDL :: Index ix => g -> (g -> (Double, g)) -> Sz ix -> Array DL ix
 randomArrayPureDL gen nextRandom sz = unfoldrS_ Seq sz nextRandom gen
 {-# INLINE randomArrayPureDL #-}
 
+--
 -- >>> gen = System.mkStdGen 217
 -- >>> randomArrayPureDL gen System.random (Sz2 2 3)
 
 
 -- >>> gen <- System.newStdGen
 
+--
 -- >>> gen = System.mkStdGen 217
 -- >>> randomArray gen System.split System.random Seq (Sz2 2 3) :: Array DL Ix2 Double
 
@@ -29,6 +33,7 @@ randomArrayPureSeq ::
 randomArrayPureSeq gen nextRandom = randomArray gen (\g -> (g, g)) nextRandom Seq
 {-# INLINE randomArrayPureSeq #-}
 
+--
 -- >>> gen = System.mkStdGen 217
 -- >>> randomArrayPureSeq gen System.random (Sz2 2 3)
 
@@ -38,13 +43,14 @@ randomArrayPurePar ::
 randomArrayPurePar gen splitGen nextRandom = randomArray gen splitGen nextRandom Par
 {-# INLINE randomArrayPurePar #-}
 
-
--- >>> gen <- newSMGen
+--
+-- >>> gen = System.mkStdGen 217
 -- >>> randomArrayPurePar gen System.split System.random (Sz2 2 3)
 
 
 -- Mutable
 
+--
 -- >>> gen <- MWC.createSystemRandom
 -- >>> generateArray Par (Sz2 2 3) (const (MWC.uniform gen)) :: IO (Array P Ix2 Double)
 
@@ -87,10 +93,6 @@ randomArrayPCG pcgSeed mkRandom sz = runST $ do
 
 -- >>> pcgSeed <- PCG.save =<< PCG.create
 -- >>> snd $ randomArrayPCG pcgSeed PCG.uniform (Sz2 2 3)
--- Array P Seq (Sz (2 :. 3))
---   [ [ 0.582712623703629, 0.2930867643435665, 0.6126627854913275 ]
---   , [ 0.8988997595678289, 0.21840698224231703, 0.24100687761278705 ]
---   ]
 
 
 randomArrayIO ::

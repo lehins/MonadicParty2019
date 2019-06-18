@@ -12,7 +12,7 @@ module MassivTalk.Day1.Intro00 where
 -- |                                                           |
 -- |                     Alexey Kuleshevich                    |
 -- |                                                           |
--- |                                                           |
+-- |         https://github.com/lehins/MonadicParty2019        |
 -- |                                                           |
 -- |                                                           |
 -- |                                                           |

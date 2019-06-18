@@ -23,8 +23,6 @@ lifeRules 1 2 = 1
 lifeRules 1 3 = 1
 lifeRules _ _ = 0
 
---- >>> :t makeStencil
-
 lifeStencil :: Stencil Ix2 Word8 Word8
 lifeStencil = makeStencil (Sz (3 :. 3)) (1 :. 1) $ \ get ->
   lifeRules <$> get (0 :. 0) <*>
@@ -32,9 +30,13 @@ lifeStencil = makeStencil (Sz (3 :. 3)) (1 :. 1) $ \ get ->
    get ( 0 :. -1)         +         get ( 0 :. 1) +
    get ( 1 :. -1) + get ( 1 :. 0) + get ( 1 :. 1))
 
-lifeStep :: Array S Ix2 Word8 -> Array S Ix2 Word8
-lifeStep = compute . mapStencil Wrap lifeStencil
+--
+-- >>> :t makeStencil
 
+lifeStep :: Array S Ix2 Word8 -> Array DW Ix2 Word8
+lifeStep = mapStencil Wrap lifeStencil
+
+-- >>> :t mapStencil
 
 
 

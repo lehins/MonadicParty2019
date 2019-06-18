@@ -4,14 +4,20 @@ module MassivTalk.Day1.Intro07_Computation where
 
 import Prelude as P
 import Data.Massiv.Array as A
-import Data.Massiv.Core.Index as A
 import Data.Massiv.Array.Unsafe as A
 import Control.Scheduler
-import Control.Monad
-import Data.Massiv.Array.IO
 import Graphics.ColorSpace
 import Control.Concurrent
 import Data.Bits
+
+-- | Computation Startegies:
+--
+-- * Seq
+-- * Par
+-- * Par'
+-- * ParOn
+-- * ParN
+
 
 
 scheduleSums :: IO [Int]
@@ -30,21 +36,6 @@ scheduleSums =
 -- >>> :t withScheduler
 
 -- >>> :t scheduleWork
-
-
-
--- >>> :t loopM_
--- loopM_
---   :: Monad m =>
---      Int -> (Int -> Bool) -> (Int -> Int) -> (Int -> m a) -> m ()
-
-computeArray :: (Source r ix e, Mutable r' ix e) => Array r ix e -> IO (Array r' ix e)
-computeArray arr = do
-  let k = totalElem (size arr)
-  marr <- new (size arr)
-  loopM_ 0 (< k) (+ 1) $ \i ->
-    unsafeLinearWrite marr i (unsafeLinearIndex arr i)
-  freeze (getComp arr) marr
 
 
 computeArrayIO :: (Source r ix e, Mutable r' ix e) => Array r ix e -> IO (Array r' ix e)

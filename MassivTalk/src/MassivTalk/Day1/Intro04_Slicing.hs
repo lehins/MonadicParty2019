@@ -30,6 +30,7 @@ sampleArr' = computeAs U (fmap fromIx3 (rangeInclusive Seq (0 :> 0 :. 0) (4 :> 2
 
 --
 -- >>> sampleArr
+-- >>> sampleArr == sampleArr'
 
 -- | Slice from both sides and from within
 
@@ -52,6 +53,7 @@ sampleArr' = computeAs U (fmap fromIx3 (rangeInclusive Seq (0 :> 0 :. 0) (4 :> 2
 
 -- | Safe slicing
 
+--
 -- >>> :t (!>)
 
 --
@@ -66,9 +68,6 @@ sampleArr' = computeAs U (fmap fromIx3 (rangeInclusive Seq (0 :> 0 :. 0) (4 :> 2
 --
 -- >>> import Data.Maybe
 -- >>> fromMaybe A.empty $ sampleArr !?> 10
-
-{- Order of evaluation depends on the monad that is an instance of `MonadThrow` -}
-
 
 
 --

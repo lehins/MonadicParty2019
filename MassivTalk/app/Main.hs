@@ -12,7 +12,7 @@ main :: IO ()
 main =
   getArgs >>= \case
     ["langton"] -> do
-      let (r, c, n) = (15, 30, 1000)
+      let (r, c, n) = (12, 16, 1000)
       runLangton (Sz (r * 11 :. c * 11)) n
     ["workers"] -> do
       a <- paintThreads (makeArrayR D Par (Sz2 110 211) $ const 0)

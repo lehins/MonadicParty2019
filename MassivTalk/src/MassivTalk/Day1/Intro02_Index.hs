@@ -8,7 +8,6 @@ import Data.Massiv.Array as A
 -------------
 
 
-
 -- | Started simple, with something that we are all familar with: tuples
 
 --
@@ -26,14 +25,13 @@ import Data.Massiv.Array as A
 -- * too polymorphic
 -- * don't scale to an arbitrary dimension:
 
---
--- >>> (1 :> 1 :. 1) ... (2 :> 3 :. 4)
 
---
--- >>> (1 :> 2 :> 3 :> 4 :. 5)
 
 --
 -- >>> (4 :. 5)
+
+--
+-- >>> (1 :> 2 :> 3 :> 4 :. 5)
 
 --
 -- >>> 5
@@ -44,7 +42,8 @@ import Data.Massiv.Array as A
 --
 -- >>> Ix1 5
 
-
+--
+-- >>> (1 :> 1 :. 1) ... (2 :> 3 :. 4)
 
 
 -- |
@@ -66,17 +65,20 @@ import Data.Massiv.Array as A
 --
 
 
-
+--
 -- >>> 1 :> 10 :. 20 * 2 + 7
 
+--
 -- >>> (1 :> 10 :. 20) * 2 + 7
 
 
 
 -- | Many functions that operate on indices of any dimension:
 
+--
 -- >>> :t foldlIndex
 
+--
 -- >>> foldlIndex (flip (:)) [] (2 :> 3 :> 4 :. 5)
 
 
@@ -84,36 +86,45 @@ import Data.Massiv.Array as A
 -- >>> oneIndex :: Ix3
 -- >>> pureIndex 4 :: Ix3
 
+--
 -- >>> :t iter
 
+--
 -- >>> iter zeroIndex (3 :> 2 :. 1) oneIndex (<) [] (:)
 
 
 -- | Reducing dimension by one:
 
+--
 -- >>> unconsDim (3 :> 2 :. 1)
 
+--
 -- >>> unsnocDim (3 :> 2 :. 1)
 
 -- | Working with specific dimensions:
 --
 -- * Order of dimensions:
 
+--
 -- >>> getDim' (5 :> 4 :> 3 :> 2 :. 1) 4
 
 -- * Partial functions:
 
+--
 -- >>> getDim' (5 :> 4 :> 3 :> 2 :. 1) 6
 
 -- * Safer alternatives:
 
+--
 -- >>> getDimM (5 :> 4 :> 3 :> 2 :. 1) 6 :: Either SomeException Int
 
 -- * Even safer alternatives:
 
+--
 -- >>> getDimension (5 :> 4 :> 3 :> 2 :. 1) Dim4
 -- 4
 
+--
 -- >>> :set -XDataKinds
 -- >>> getDimension (5 :> 4 :> 3 :> 2 :. 1) (DimN :: Dimension 6)
 
@@ -123,26 +134,35 @@ import Data.Massiv.Array as A
 -- Size --
 ----------
 
+--
 -- >>> Sz (3 :> 2 :. 1)
 
 -- * Promote type safety
 
+--
 -- >>> :t makeArrayR
 
+--
 -- >>> makeArrayR D Seq (2 :. 3) $ \ (i :. j) -> i + j
 
 -- * Prevent easy mistakes of mixing index and size
 
+--
 -- >>> Sz (3 :> 2 :. 1) + (1 :> 2 :. 3)
 
+--
 -- * Enforce valid size
 
+--
 -- >>> Sz (-3 :> 2 :. 1)
 
 -- * Helper pattern synonyms
 
+--
 -- >>> Sz3 3 2 1
 
+--
+-- >>> Sz4 4 3 2 1 == Sz (4 :> 3 :> 2 :. 1)
 
 ------------
 -- Stride --
@@ -155,6 +175,7 @@ import Data.Massiv.Array as A
 
 -- | Stride is similar to Sz, just a special index
 
+--
 -- >>> :t Stride
 
 -- >>> Stride (3 :> 0 :. -2)

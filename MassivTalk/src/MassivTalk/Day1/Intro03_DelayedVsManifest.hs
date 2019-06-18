@@ -4,12 +4,11 @@ module MassivTalk.Day1.Intro03_DelayedVsManifest where
 import Prelude as P
 import Data.Massiv.Array as A
 
-
 ---------------------
 -- Class Hierarchy --
 ---------------------
 
--- | Same type variables as in: `Array r ix e`
+
 
 -- class (Typeable r, Index ix) => Construct r ix e where
 
@@ -19,7 +18,7 @@ import Data.Massiv.Array as A
 
 -- class (Load r ix e, Source r ix e) => Manifest r ix e where
 
-
+-- class Manifest r ix e => Mutable r ix e where
 
 
 -- | Fuse computation and avoid array allocations
@@ -30,6 +29,7 @@ paraboloid n = makeArrayR D Par (Sz2 n n) $ \(i :. j) -> f (i - n2) + f (j - n2)
     n2 = n `div` 2
     f x = fromIntegral (x * x)
 
+--
 -- >>> arr = paraboloid 5
 -- >>> A.sum $ A.map (+10) arr
 -- 350.0
@@ -66,16 +66,7 @@ ridiculousSquare k =
 -- | Computation
 
 
-identityD :: Int -> Array D Ix2 Int
-identityD n =
-  makeArray Seq (Sz2 n n) $ \(i :. j) ->
-    if i == j
-      then 1
-      else 0
-
 --
--- >>> computeAs P $ identityD 5
-
 -- >>> :t computeAs
 
 -- | The process of computation:
@@ -86,8 +77,6 @@ identityD n =
 --   the computation strategy
 -- * Freeze the mutable array and get as a result the pure manifest array.
 
--- | This is how we can hide all of the effectful memory allocation, mutation
--- and threads scheduling as a safe and pure computation.
 
 
 -- | Fusion of computation and some pitfalls
@@ -102,11 +91,31 @@ identityD n =
 
 {- Rule of thumb. If delayed array is used more than once, compute it. -}
 
+--
+-- >>> arr = computeAs P $ A.map (sin . (+10)) $ paraboloid 3
+-- >>> arr
+-- >>> arr ! 1 :. 1
+
+
+
+
+
+
 ----------------
 -- Push array --
 ----------------
 
 
+
+identityD :: Int -> Array D Ix2 Int
+identityD n =
+  makeArray Seq (Sz2 n n) $ \(i :. j) ->
+    if i == j
+      then 1
+      else 0
+
+--
+-- >>> computeAs P $ identityD 5
 
 
 -- >>> :t makeLoadArrayS
@@ -118,8 +127,5 @@ identityDL n = makeLoadArrayS (Sz2 n n) 0 $ \ writeCell -> do
   -- Same as:
   -- P.mapM_ f [0 .. n - 1]
 
-
 -- >>> identityDL 5
 
-
--- >>> upsample 3 (Stride 2) $ identityDL 5

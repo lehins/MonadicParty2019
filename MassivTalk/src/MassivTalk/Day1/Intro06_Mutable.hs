@@ -12,6 +12,7 @@ import Prelude as P
 --   data family MArray s r ix e
 --   msize :: MArray s r ix e -> Sz ix
 --   unsafeThaw :: PrimMonad m => Array r ix e -> m (MArray (PrimState m) r ix e)
+--   ....
 
 
 exampleArray :: Array P Ix2 Int
@@ -21,23 +22,23 @@ exampleArray = makeArray Seq sz (toLinearIndex sz)
 
 --
 -- >>> print exampleArray
+-- Array P Seq (Sz (2 :. 3))
+--   [ [ 0, 1, 2 ]
+--   , [ 3, 4, 5 ]
+--   ]
 
 
 
 -- | Swap two last elements in IO monad
 
---
+
+-- $
 -- >>> marr <- A.thaw exampleArray
 -- >>> Just x1 <- A.read marr (1 :. 1)
 -- >>> Just x2 <- A.read marr (1 :. 2)
 -- >>> A.write marr (1 :. 1) x2
 -- >>> A.write marr (1 :. 2) x1
--- >>> newArray <- A.freeze Seq marr
--- >>> print newArray
--- >>> print exampleArray
--- >>> A.swap marr (0 :. 0) (0 :. 1)
--- >>> newArray' <- A.freeze Seq marr
--- >>> print newArray'
+-- >>> newArray <- A.unsafeFreeze Seq marr
 -- >>> print newArray
 
 
@@ -47,10 +48,18 @@ exampleArray = makeArray Seq sz (toLinearIndex sz)
 -- * An extraneous intermediate array is created
 -- * Self-contained mutability is pure
 
---
+-- $
 -- >>> let newArray = withMArrayST exampleArray $ \ marr -> A.swap marr (0 :. 0) (0 :. 1)
 -- >>> print newArray
+-- Array P Seq (Sz (2 :. 3))
+--   [ [ 1, 0, 2 ]
+--   , [ 3, 4, 5 ]
+--   ]
 -- >>> print exampleArray
+-- Array P Seq (Sz (2 :. 3))
+--   [ [ 0, 1, 2 ]
+--   , [ 3, 4, 5 ]
+--   ]
 
 -- >>> import Control.Monad.ST
 -- >>> :t withMArrayST
@@ -71,26 +80,40 @@ exampleArray = makeArray Seq sz (toLinearIndex sz)
 --
 -- >>> import Data.Massiv.Array.Unsafe as A
 -- >>> print exampleArray
+-- Array P Seq (Sz (2 :. 3))
+--   [ [ 0, 1, 2 ]
+--   , [ 3, 4, 5 ]
+--   ]
 -- >>> marr <- A.unsafeThaw exampleArray
 -- >>> write' marr (0 :. 0) 100
 -- >>> newArray <- A.freeze Seq marr
 -- >>> print newArray
+-- Array P Seq (Sz (2 :. 3))
+--   [ [ 100, 1, 2 ]
+--   , [ 3, 4, 5 ]
+--   ]
 -- >>> print exampleArray
+-- Array P Seq (Sz (2 :. 3))
+--   [ [ 100, 1, 2 ]
+--   , [ 3, 4, 5 ]
+--   ]
 
 
 
 
 -- | Couple of more examples
 
+-- >>> :t initializeNew
+-- initializeNew
+--   :: (Mutable r ix e, PrimMonad m) =>
+--      Maybe e -> Sz ix -> m (MArray (PrimState m) r ix e)
+
 --
 -- >>> :set -XTypeApplications
--- >>> marr <- initializeNew @P @_ @Int (Just 5) (Sz (2 :. 3))
--- >>> A.forM_ (0 :. 0 ... 0 :. 2) $ \ ix -> write' marr ix 1
+-- >>> marr <- initializeNew @P @_ @Int Nothing (Sz (2 :. 3))
+-- >>> A.forM_ (0 :. 0 ... 1 :. 2) $ \ ix -> write' marr ix 1
 -- >>> A.freeze Seq marr
--- Array P Seq (Sz (2 :. 3))
---   [ [ 1, 1, 1 ]
---   , [ 5, 5, 5 ]
---   ]
+
 
 
 -- | How can we use mutation to implement computation.
@@ -107,10 +130,12 @@ computeArray arr = do
   unsafeFreeze (getComp arr) marr
 
 
+
 -- >>> :t loopM_
 -- loopM_
 --   :: Monad m =>
 --      Int -> (Int -> Bool) -> (Int -> Int) -> (Int -> m a) -> m ()
+
 
 
 

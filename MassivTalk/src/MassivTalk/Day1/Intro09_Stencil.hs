@@ -32,9 +32,12 @@ lifeStencil = makeStencil (Sz (3 :. 3)) (1 :. 1) $ \ get ->
 
 --
 -- >>> :t makeStencil
+-- makeStencil
+--   :: (Index ix, Default e) =>
+--      Sz ix -> ix -> ((ix -> Value e) -> Value a) -> Stencil ix e a
 
-lifeStep :: Array S Ix2 Word8 -> Array DW Ix2 Word8
-lifeStep = mapStencil Wrap lifeStencil
+lifeStep :: Array S Ix2 Word8 -> Array S Ix2 Word8
+lifeStep = compute . mapStencil Wrap lifeStencil
 
 -- >>> :t mapStencil
 

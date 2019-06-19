@@ -15,8 +15,8 @@ main =
       let (r, c, n) = (12, 16, 1000)
       runLangton (Sz (r * 11 :. c * 11)) n
     ["workers"] -> do
-      a <- paintThreads (makeArrayR D Par (Sz2 110 211) $ const 0)
+      a <- paintThreads (makeArrayR D Par (Sz2 11 21) $ const 0)
       displayImageUsing defaultViewer True $
-        computeAs S $ zoomWithGrid 128 (Stride 5) a
+        computeAs S $ zoomWithGrid 128 (Stride 15) a
     args ->
       putStrLn $ "Unrecognized args: " ++ L.intercalate ", " args

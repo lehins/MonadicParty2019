@@ -31,11 +31,15 @@ scheduleSums =
 
 --
 -- >>> scheduleSums
+-- [11,22,33,44,55]
 
 --
 -- >>> :t withScheduler
+-- withScheduler
+--   :: MonadUnliftIO m => Comp -> (Scheduler m a -> m b) -> m [a]
 
 -- >>> :t scheduleWork
+-- scheduleWork :: Scheduler m a -> m a -> m ()
 
 
 computeArrayIO :: (Source r ix e, Mutable r' ix e) => Array r ix e -> IO (Array r' ix e)
@@ -62,7 +66,7 @@ paintThreads ::
   -> IO (Array S Ix2 (Pixel RGB Word8))
 paintThreads arr = do
   mArr <- A.new (size arr)
-  withScheduler_ (getComp arr) $ \ scheduler ->
+  withScheduler_ Par $ \ scheduler ->
     loadArrayM scheduler arr $ \ i _ -> do
       (cInt, _) <- threadCapability =<< myThreadId
       let c = fromIntegral cInt

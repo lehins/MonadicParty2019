@@ -4,10 +4,12 @@ import Prelude as P
 import Data.Massiv.Array as A
 
 
---
+-- |
 -- data family Array r ix e :: *
 --
 -- >>> :t makeArray
+-- makeArray
+--   :: Construct r ix e => Comp -> Sz ix -> (ix -> e) -> Array r ix e
 
 -- | Array with all even integers up to the supplied `n`
 evens :: Int -> Array P Ix1 Int
@@ -15,14 +17,19 @@ evens n = makeArray Seq (Sz (n `div` 2)) $ \ i -> i * 2
 
 --
 -- >>> evens 10
+-- Array P Seq (Sz1 5)
+--   [ 0, 2, 4, 6, 8 ]
 
 areEvens :: Int -> Array S Ix1 Bool
 areEvens n = makeArray Seq (Sz n) even
 
 --
 -- >>> areEvens 10
+-- Array S Seq (Sz1 10)
+--   [ True, False, True, False, True, False, True, False, True, False ]
 
--- | Array with all integers up to supplied `n` and indicator if it is even or not
+-- | Array with all integers up to supplied `n` and indicator if it is even or
+-- not
 evensAre :: Int -> Array U Ix1 (Int, Bool)
 evensAre n = makeArray Seq (Sz n) $ \ i -> (i, even i)
 
@@ -39,6 +46,8 @@ evensMaybe n =
 
 --
 -- >>> evensMaybe 6
+-- Array B Seq (Sz1 6)
+--   [ Just 0, Nothing, Just 2, Nothing, Just 4, Nothing ]
 
 ---------------------------
 -- Strictness properties --
@@ -46,6 +55,7 @@ evensMaybe n =
 
 --
 -- >>> [undefined, 'c', error "Whoops"] !! 1
+-- 'c'
 
 
 badEvens :: Array U Ix1 (Int, Bool)
@@ -57,18 +67,27 @@ badEvens = makeArray Seq 10 $ \ i -> (i, even i && undefined)
 --
 -- >>> arr = fromList Seq [undefined, 'c', error "Whoops"] :: Array B Ix1 Char
 -- >>> arr ! 1
+-- *** Exception: Prelude.undefined
+-- CallStack (from HasCallStack):
+--   error, called at libraries/base/GHC/Err.hs:78:14 in base:GHC.Err
+--   undefined, called at <interactive>:20:22 in interactive:Ghci1
 
 --
 -- >>> arr = fromList Seq ['a', 'c', error "Whoops"] :: Array B Ix1 Char
 -- >>> arr ! 1
+-- *** Exception: Whoops
+-- CallStack (from HasCallStack):
+--   error, called at <interactive>:24:32 in interactive:Ghci1
 
 --
 -- >>> arr = fromList Seq [Just undefined, Just 'c', Nothing] :: Array B Ix1 (Maybe Char)
 -- >>> arr ! 1
+-- Just 'c'
 
 --
 -- >>> arr = fromList Seq ["foo" ++ undefined, "bar", ""] :: Array B Ix1 String
 -- >>> arr ! 1
+-- "bar"
 
 --
 -- >>> arr = fromList Seq ["foo" ++ undefined, "bar", ""] :: Array N Ix1 String

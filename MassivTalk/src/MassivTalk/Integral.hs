@@ -2,13 +2,19 @@ module MassivTalk.Integral where
 
 import Data.Foldable as F
 import Data.Massiv.Array as A
-import Data.Massiv.Array.Unsafe
 import Data.Massiv.Array.Numeric.Integral
+import Data.Massiv.Array.Unsafe
 import Prelude as P
 
 -- StackOverflow questions:
 -- https://stackoverflow.com/questions/56332713/how-do-i-add-parallel-computation-to-this-example
 -- https://stackoverflow.com/questions/56395599/how-to-correctly-add-the-runge-error-estimation-rule-to-this-example
+
+
+-- | Overview of integral approximation with trapezoid rule
+
+-- >>> import Data.Massiv.Array.IO
+-- >>> displayImageFile defaultViewer "files/TrapezoidRule.png"
 
 
 -- | Built-in solution:
@@ -24,15 +30,14 @@ integrateTrapezoid n f a b =
 -- >>> let f x y = exp (- (x ** 2 + y ** 2)) :: Float
 -- >>> trapezoidRule Seq P (\scale (i :. j) -> f (scale i) (scale j)) (-2) 1 (Sz2 4 4) 100
 
--- TODO: add formula for trapezoid rule
 -- | Implementation from the SO question using lists
 
 integrate :: Int -> (Double -> Double) -> Double -> Double -> Double
 integrate n f a b =
   let step     = (b - a) / fromIntegral n
-      segments = [a + fromIntegral x * step | x <- [0 .. n-1]]
+      segments = fmap (\ x -> a + fromIntegral x * step) [0 .. n-1]
       area x   = step * (f x + f (x + step)) / 2
-  in P.sum $ P.map area segments
+  in P.sum $ fmap area segments
 
 -- Sanity check:
 --
@@ -56,7 +61,7 @@ integrate n f a b =
 integrateNaive :: Int -> (Double -> Double) -> Double -> Double -> Double
 integrateNaive n f a b =
   let step     = (b - a) / fromIntegral n
-      segments = fmap (\x -> a + fromIntegral x * step) (0 ..: n)
+      segments = fmap (\x -> a + fromIntegral x * step) (0 ... n - 1)
       area x   = step * (f x + f (x + step)) / 2
   in P.sum $ fmap area segments
 
@@ -69,8 +74,8 @@ integrateNaive n f a b =
 -- range exclusive or simply `range`:
 -- >>> Ix1 0 ..: 10
 
--- Works for all dimensions
--- >>> 0 :. 1 ... 5
+-- Which is a synonym for
+-- >>> range Seq (Ix1 0) 10
 
 
 -- >>> integrateNaive 1024 (\x -> x * x) 10 20
@@ -82,9 +87,9 @@ integrateNaive n f a b =
 integrateNaivePar :: Int -> (Double -> Double) -> Double -> Double -> Double
 integrateNaivePar n f a b =
   let step     = (b - a) / fromIntegral n
-      segments = A.map (\x -> a + fromIntegral x * step) (range Par 0 n)
+      segments = fmap (\x -> a + fromIntegral x * step) (range Par 0 n)
       area x   = step * (f x + f (x + step)) / 2
-  in A.sum $ A.map area segments
+  in P.sum $ fmap area segments
 
 
 -- >>> integrateNaivePar 1024 (\x -> x * x) 10 20
@@ -99,6 +104,18 @@ integrateNaivePar n f a b =
 -- >>> enumFromStepN Seq 10 0.1 5 :: Array D Ix1 Double
 
 
+
+
+integrateNoDuplicateList :: Int -> (Double -> Double) -> Double -> Double -> Double
+integrateNoDuplicateList n f a b =
+  let step       = (b - a) / fromIntegral n
+      ys         = [f (a + fromIntegral x * step) | x <- [0 .. n]]
+      area y0 y1 = step * (y0 + y1) / 2
+  in P.sum $ P.zipWith area ys (tail ys)
+
+-- >>> integrateNoDuplicateList 1024 (\x -> x * x) 10 20
+
+
 -- | First optimization. Avoid duplicate calls to `f`
 
 -- For simplicity we'll use n = 10
@@ -106,10 +123,10 @@ integrateNaivePar n f a b =
 -- >>> n = 10 :: Int
 -- >>> (a, b) = (10, 20) :: (Double, Double)
 -- >>> step = (b - a) / fromIntegral n
--- >>> A.map (\x -> a + fromIntegral x * step) (range Par 0 n) :: Array D Ix1 Double
--- >>> enumFromStepN Seq a step (Sz n + 1) :: Array D Ix1 Double
+-- >>> f = (^ (2 :: Int))
+-- >>> segments = f <$> enumFromStepN Seq a step (Sz n + 1) :: Array D Ix1 Double
+-- >>> segments
 
--- TODO: add intermediate steps
 
 integrateNoDuplicateBad :: Int -> (Double -> Double) -> Double -> Double -> Double
 integrateNoDuplicateBad n f a b =
@@ -121,8 +138,7 @@ integrateNoDuplicateBad n f a b =
       areas = A.zipWith area segments (extract' 1 sz segments)
    in P.sum areas
 
--- integrateNoDuplicate :: Int -> (Double -> Double) -> Double -> Double -> Double
--- integrateNoDuplicate n f a b = undefined -- fix the above
+-- >>> integrateNoDuplicateBad 1024 (\x -> x * x) 10 20
 
 integrateNoDuplicate :: Int -> (Double -> Double) -> Double -> Double -> Double
 integrateNoDuplicate n f a b =
@@ -154,28 +170,33 @@ integrateNoDuplicatePar n f a b =
       areas = A.zipWith area (extract' 0 sz segments) (extract' 1 sz segments)
    in A.sum areas
 
+-- >>> integrateNoDuplicatePar 1024 (\x -> x * x) 10 20
 
-
-integrateNoDuplicateList :: Int -> (Double -> Double) -> Double -> Double -> Double
-integrateNoDuplicateList n f a b =
-  let step       = (b - a) / fromIntegral n
-      ys         = [f (a + fromIntegral x * step) | x <- [0 .. n]]
-      area y0 y1 = step * (y0 + y1) / 2
-  in P.sum $ P.zipWith area ys (tail ys)
-
--- >>> integrateNoDuplicateList 1024 (\x -> x * x) 10 20
 
 
 -- :! stack bench :integral --ba '--match prefix NoDuplicate'
 
 
--- Moral:
--- * List fusion is easily broken. Which results in allocations and slowdowns
--- * Parallelization is easy
+-- | Moral:
+-- * Parallelization is easy (most of the time)
 -- * Important to identify duplication of work. Easy solution is to `compute`.
 
 
--- | Can we avoid allocation completely? Yes we can!
+-- | Can we avoid allocation completely? Yes we can! Even with lists:
+
+
+integrateNoAllocateList :: Int -> (Double -> Double) -> Double -> Double -> Double
+integrateNoAllocateList n f a b =
+  let step = (b - a) / fromIntegral n
+      segments = fmap (\x -> f (a + fromIntegral x * step)) [1 .. n]
+      area y0 y1 = step * (y0 + y1) / 2
+      sumWith (acc, y0) y1 =
+        let acc' = acc + area y0 y1
+         in acc' `seq` (acc', y1)
+   in fst $ F.foldl' sumWith (0, f a) segments
+
+-- >>> integrateNoAllocateList 1024 (\x -> x * x) 10 20
+
 
 
 integrateNoAllocate :: Int -> (Double -> Double) -> Double -> Double -> Double
@@ -233,21 +254,15 @@ integrateNoAllocateN8 n f a b =
 
 
 
-integrateNoAllocateList :: Int -> (Double -> Double) -> Double -> Double -> Double
-integrateNoAllocateList n f a b =
-  let step = (b - a) / fromIntegral n
-      segments = [f (a + fromIntegral x * step) | x <- [1 .. n]]
-      area y0 y1 = step * (y0 + y1) / 2
-      sumWith (acc, y0) y1 =
-        let acc' = acc + area y0 y1
-         in acc' `seq` (acc', y1)
-   in fst $ F.foldl' sumWith (0, f a) segments
-
--- >>> integrateNoAllocateList 1024 (\x -> x * x) 10 20
--- 2333.3335
+----------------
+-- Runge Rule --
+----------------
 
 
---TODO: add the formula
+-- >>> import Data.Massiv.Array.IO
+-- >>> displayImageFile defaultViewer "files/RungeRule.png"
+
+
 -- | Returns estimated integral up to a precision, or value estimated at max
 -- number of steps
 rungeRule ::
@@ -275,7 +290,7 @@ trapezoidalRunge ::
   -> Double -- ^ b - to
   -> Either Double (Int, Double)
 trapezoidalRunge epsilon f a b =
-  rungeRule 131072 epsilon 2 (1 / 3) (\n -> integrateNoDuplicate n f a b)
+  rungeRule 131072 epsilon 2 (1 / 3) (\n -> integrateNoAllocate n f a b)
 
 
 -- >>> trapezoidalRunge 0.0005 (\x -> x * x) 10 20

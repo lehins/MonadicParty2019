@@ -35,24 +35,27 @@ integrateTrapezoid n f a b =
 integrate :: Int -> (Double -> Double) -> Double -> Double -> Double
 integrate n f a b =
   let step     = (b - a) / fromIntegral n
-      segments = fmap (\ x -> a + fromIntegral x * step) [0 .. n-1]
+      segments = fmap (\ x -> a + fromIntegral x * step) [0 .. n - 1]
       area x   = step * (f x + f (x + step)) / 2
   in P.sum $ fmap area segments
 
 -- Sanity check:
 --
 -- >>> integrate 1 (\x -> x) 0 10 == 10 * 10 / 2
+-- True
 
 
 -- Something more complicated, how about a parabola:
 --
 -- >>> integrate 1024 (\x -> x * x) 10 20
+-- 2333.3334922790527
 
 
 -- Exact solution:
 --
 -- >>> let f x = x ** 3 / 3 :: Double
 -- >>> f 20 - f 10
+-- 2333.333333333333
 
 
 
@@ -67,18 +70,27 @@ integrateNaive n f a b =
 
 -- range sugar:
 -- >>> Ix1 0 ... 10
+-- Array D Seq (Sz1 11)
+--   [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
 
 -- Which is a synonym for
 -- >>> rangeInclusive Seq (Ix1 0) 10
+-- Array D Seq (Sz1 11)
+--   [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
 
 -- range exclusive or simply `range`:
 -- >>> Ix1 0 ..: 10
+-- Array D Seq (Sz1 10)
+--   [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
 
 -- Which is a synonym for
 -- >>> range Seq (Ix1 0) 10
+-- Array D Seq (Sz1 10)
+--   [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
 
 
 -- >>> integrateNaive 1024 (\x -> x * x) 10 20
+-- 2333.3334922790527
 
 
 
@@ -93,6 +105,7 @@ integrateNaivePar n f a b =
 
 
 -- >>> integrateNaivePar 1024 (\x -> x * x) 10 20
+-- 2333.3334922790527
 
 -- Checkout benchmarks:
 -- :! stack bench :integral --ba '--match prefix Naive'
@@ -100,8 +113,12 @@ integrateNaivePar n f a b =
 
 -- Simplify a bit first
 -- >>> A.map (\x -> 10 + fromIntegral x * 0.1) (range Seq 0 5) :: Array D Ix1 Double
+-- Array D Seq (Sz1 5)
+--   [ 10.0, 10.1, 10.2, 10.3, 10.4 ]
 
 -- >>> enumFromStepN Seq 10 0.1 5 :: Array D Ix1 Double
+-- Array D Seq (Sz1 5)
+--   [ 10.0, 10.1, 10.2, 10.3, 10.4 ]
 
 
 
@@ -114,6 +131,7 @@ integrateNoDuplicateList n f a b =
   in P.sum $ P.zipWith area ys (tail ys)
 
 -- >>> integrateNoDuplicateList 1024 (\x -> x * x) 10 20
+-- 2333.3334922790527
 
 
 -- | First optimization. Avoid duplicate calls to `f`
@@ -124,8 +142,9 @@ integrateNoDuplicateList n f a b =
 -- >>> (a, b) = (10, 20) :: (Double, Double)
 -- >>> step = (b - a) / fromIntegral n
 -- >>> f = (^ (2 :: Int))
--- >>> segments = f <$> enumFromStepN Seq a step (Sz n + 1) :: Array D Ix1 Double
--- >>> segments
+-- >>> xs = enumFromStepN Seq a step (Sz n + 1) :: Array D Ix1 Double
+-- >>> xs
+-- >>> f <$> xs
 
 
 integrateNoDuplicateBad :: Int -> (Double -> Double) -> Double -> Double -> Double
@@ -139,6 +158,7 @@ integrateNoDuplicateBad n f a b =
    in P.sum areas
 
 -- >>> integrateNoDuplicateBad 1024 (\x -> x * x) 10 20
+-- 2333.3334922790527
 
 integrateNoDuplicate :: Int -> (Double -> Double) -> Double -> Double -> Double
 integrateNoDuplicate n f a b =
@@ -211,7 +231,7 @@ integrateNoAllocate n f a b =
 
 
 -- :! stack bench :integral --ba '--match prefix No'
--- Waaat?
+
 
 -- Can we do even better?
 -- Not too straighforward, but there is a bit of uglyness we can come up with.
@@ -250,7 +270,17 @@ integrateNoAllocateN8 n f a b =
 -- >>> comp = ParN (fromIntegral k)
 -- >>> segments = makeArrayR D comp (Sz1 k) mkSubArr
 -- >>> A.mapM_ print segments
+-- (112.890625,Array D Seq (Sz1 3)
+--   [ 126.5625, 141.015625, 156.25 ])
+-- (172.265625,Array D Seq (Sz1 3)
+--   [ 189.0625, 206.640625, 225.0 ])
+-- (244.140625,Array D Seq (Sz1 3)
+--   [ 264.0625, 284.765625, 306.25 ])
+-- (328.515625,Array D Seq (Sz1 3)
+--   [ 351.5625, 375.390625, 400.0 ])
 -- >>> A.map f (enumFromStepN Seq a step (Sz n + 1))
+-- Array D Seq (Sz1 17)
+--   [ 100.0, 112.890625, 126.5625, 141.015625, 156.25, 172.265625, 189.0625, 206.640625, 225.0, 244.140625, 264.0625, 284.765625, 306.25, 328.515625, 351.5625, 375.390625, 400.0 ]
 
 
 
@@ -294,6 +324,7 @@ trapezoidalRunge epsilon f a b =
 
 
 -- >>> trapezoidalRunge 0.0005 (\x -> x * x) 10 20
+-- Right (1024,2333.3334922790527)
 
 -- Memoized version
 
